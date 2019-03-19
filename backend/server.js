@@ -29,15 +29,34 @@ router.get("/company/:name/users/", (req, res) => {
 	});
 });
 
-router.post("/user/", (req, res) => {
+router.post("/company/user/", (req, res) => {
 	// add user
+	const user = new Person({
+		_id: new mongoose.Types.ObjectId(),
+		name: 'Ian Fleming',
+		age: 50
+	});
+
+	user.save(function (err) {
+		if (err) return handleError(err);
+
+		const company = new Company({
+			title: 'Casino Royale',
+			user: author._id    // assign the _id from the person
+		});
+
+		story1.save(function (err) {
+			if (err) return handleError(err);
+			// thats it!
+		});
+	});
 });
 
-router.post("/user/", (req, res) => {
+router.post("/company/user/", (req, res) => {
 	// edit user
 });
 
-router.delete("/user/", (req, res) => {
+router.delete("/company/user/", (req, res) => {
 	// delete user
 });
 
