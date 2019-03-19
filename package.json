@@ -1,0 +1,23 @@
+{
+  "name": "holded",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"cd backend && node server.js\" \"cd client && npm start\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rcluis/holded.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rcluis/holded/issues"
+  },
+  "homepage": "https://github.com/rcluis/holded#readme",
+  "dependencies": {
+    "concurrently": "^4.1.0"
+  }
+}
