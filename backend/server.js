@@ -16,23 +16,29 @@ mongoose.connect(
 
 let db = mongoose.connection;
 db.once("open", () => console.log("connected to the database"));
-
-// checks if connection with the database is successful
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
-// (optional) only made for logging and
-// bodyParser, parses the request body to be a readable json format
-
-// this is our get method
-// this method fetches all available data in our database
-router.get("/test", (req, res) => {
+router.get("/company/:name/users/", (req, res) => {
+	const name = req.params.name;
 	Company.
-	findOne({ name: 'Holded' }).
+	findOne({ name }).
 	populate('users').
 	exec((err, data) => {
 		if (err) return res.json({ success: false, error: err });
 		return res.json({ success: true, data: data });
 	});
+});
+
+router.post("/user/", (req, res) => {
+	// add user
+});
+
+router.post("/user/", (req, res) => {
+	// edit user
+});
+
+router.delete("/user/", (req, res) => {
+	// delete user
 });
 
 // append /api for our http requests
