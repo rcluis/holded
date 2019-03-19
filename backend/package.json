@@ -1,0 +1,11 @@
+{
+  "name": "holded-backend",
+  "version": "1.0.0",
+  "description": "Rest api",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raúl Catalán Luis",
+  "license": "ISC"
+}
