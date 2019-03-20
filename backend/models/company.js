@@ -1,11 +1,19 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
 const CompanySchema = new Schema(
 	{
-		id: Number,
-		name: String,
-		users: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+		_id: Schema.Types.ObjectId,
+		name: {
+			type: String,
+			required: true
+		},
+		users: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: 'User'
+			}
+		]
 	}
 );
 
