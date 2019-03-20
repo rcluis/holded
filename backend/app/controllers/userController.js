@@ -1,104 +1,65 @@
 const mongoose = require('mongoose');
 const User = require('../database/schemas/User');
 const Company = require('../database/schemas/Company');
+const Utils = require('../utils')();
 
 module.exports = () => {
 	return {
 		getUsers: (async (req, res, next) => {
-			const name = req.params.name;
-			Company.
-			findOne({ name }).
-			populate('users').
-			exec((error, data) => {
-				if (error) {
-					if (error) {
-						return res.json({
-							success: false,
-							error
-						});
-					}
-				}
-				return res.json({ success: true, data });
-			});
+			try {
+				const { name } = req.params;
+				const result = await Company.findOne({ name }).populate('users').exec();
+				res.json({ data: result });
+			} catch (error) {
+				next(error);
+			}
 		}),
 		addUser: (async (req, res, next) => {
 			try {
-				const {companyId} = req.body;
+				const { companyId, profilePicture, ...userAttributes } = req.body;
 
 				if ((!companyId && companyId !== 0)) {
-					return res.json({
-						success: false,
-						error: "INVALID INPUTS"
-					});
+					return res.json(Utils.handleError('Invalid parameters'));
 				}
 
 				const newUser = new User({
 					_id: new mongoose.Types.ObjectId(),
-					...req.body
+					profilePicture: Buffer.from(profilePicture, 'base64'),
+					...userAttributes
 				});
 
 				const user = await newUser.save();
-				const result = await Company.findByIdAndUpdate(companyId, {$push: {users: user}});
-				res.json({message: 'User created successfully', data: result});
+				await Company.findByIdAndUpdate(companyId, {$push: {users: user}});
+				res.json(Utils.handleSuccess('User created successfully', user));
 			} catch (error) {
 				next(error);
 			}
 		}),
 		editUser: (async (req, res, next) => {
-			const {
-				userId,
-				update
-			} = req.body;
-
-			if ((!userId && userId !== 0) || !update) {
-				return res.json({
-					success: false,
-					error: "INVALID INPUTS"
-				});
-			}
-			User.findByIdAndUpdate(userId, update, error => {
-				if (error) {
-					return res.json({
-						success: true,
-						error
-					});
+			try {
+				const {	userId,	update } = req.body;
+				if ((!userId && userId !== 0) || !update) {
+					return res.json(Utils.handleError('Invalid parameters'));
 				}
-				return res.json({ success: true });
-			});
+				const user = await User.findByIdAndUpdate(userId, update);
+				res.json(Utils.handleSuccess('User edited successfully', user));
+			} catch (error) {
+				next(error);
+			}
 		}),
 		removeUser: (async (req, res, next) => {
-			const {
-				userId,
-				companyId
-			} = req.body;
-
-			User.findById(userId, (error, user) => {
-				if (error) {
-					return res.json({
-						success: true,
-						error
-					});
+			try {
+				const { userId,	companyId } = req.body;
+				if ((!userId && userId !== 0) || (!companyId && companyId !== 0)) {
+					return res.json(Utils.handleError('Invalid parameters'));
 				}
-				user.remove((error) => {
-					if (error) {
-						return res.json({
-							success: true,
-							error
-						});
-					}
-					Company.updateOne({ _id: companyId }, { $pull: { users: userId } }, (error) => {
-						if (error) {
-							return res.json({
-								success: true,
-								error
-							});
-						}
-						return res.json({
-							success: true
-						});
-					});
-				});
-			});
+				const user = await User.findById(userId);
+				await user.remove();
+				await Company.updateOne({ _id: companyId }, { $pull: { users: userId } });
+				res.json(Utils.handleSuccess('User deleted successfully'));
+			} catch (error) {
+				next(error);
+			}
 		})
 	}
 };

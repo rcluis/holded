@@ -32,7 +32,10 @@ const UserSchema = new Schema(
 			type: Number,
 			required: true
 		},
-		profilePicture: Buffer
+		profilePicture: {
+			type: Buffer,
+			required: true
+		}
 	}
 );
 
