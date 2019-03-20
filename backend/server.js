@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const bodyParser = require("body-parser");
 const User = require('./models/user');
 const Company = require('./models/company');
 
@@ -18,6 +19,10 @@ let db = mongoose.connection;
 db.once("open", () => console.log("connected to the database"));
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
+// bodyParser, parses the request body to be a readable json format
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 router.get("/company/:name/users/", (req, res) => {
 	const name = req.params.name;
 	Company.
@@ -30,25 +35,61 @@ router.get("/company/:name/users/", (req, res) => {
 });
 
 router.post("/company/user/", (req, res) => {
-	// add user
-	const user = new Person({
+    console.log(req.body);
+    const {
+        companyId,
+        name,
+        surname,
+        email,
+        position,
+        office,
+        salary,
+        workingHours,
+        profilePicture
+    } = req.body;
+
+    if ((!companyId && companyId !== 0) ||
+        !name ||
+        !surname ||
+        !email ||
+        !position ||
+        !office ||
+        !salary ||
+        !workingHours) {
+        return res.json({
+            success: false,
+            error: "INVALID INPUTS"
+        });
+    }
+
+	const user = new User({
 		_id: new mongoose.Types.ObjectId(),
-		name: 'Ian Fleming',
-		age: 50
+        name,
+        surname,
+        email,
+        position,
+        office,
+        salary,
+        workingHours,
+        profilePicture
 	});
 
 	user.save(function (err) {
 		if (err) return handleError(err);
+        console.log('user created');
+        return res.json({
+            success: true,
+            error: "USER CREATED"
+        });
+		// const company = new Company({
+		// 	title: 'Casino Royale',
+		// 	user: author._id    // assign the _id from the person
+		// });
 
-		const company = new Company({
-			title: 'Casino Royale',
-			user: author._id    // assign the _id from the person
-		});
-
-		story1.save(function (err) {
-			if (err) return handleError(err);
-			// thats it!
-		});
+		// story1.save(function (err) {
+		// 	if (err) return handleError(err);
+		// 	// thats it!
+		// });
 	});
 });
 
