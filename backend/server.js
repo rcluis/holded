@@ -38,7 +38,7 @@ router.get("/company/:name/users/", (req, res) => {
 					});
 				}
 			}
-			return res.json({ success: true, data: data });
+			return res.json({ success: true, data });
 		});
 });
 
@@ -57,45 +57,41 @@ router.post("/company/user/", (req, res) => {
         ...req.body
 	});
 
-	user.save(function (error) {
+	user.save(function (error, data) {
 		if (error) {
 			return res.json({
 				success: false,
 				error
 			});
 		}
-		Company.
-			findOne({ _id: companyId }).
-			exec((err, company) => {
-				company.users.push(user);
-				company.save((error) => {
-					if (error) {
-						return res.json({
-							success: false,
-							error
-						});
-					}
-					return res.json({
-						success: true
-					});
+		Company.findByIdAndUpdate(companyId, { $push: { users: user } }, (error) =>  {
+			if (error) {
+				return res.json({
+					success: false,
+					error
 				});
+			}
+			return res.json({
+				success: true,
+				data
 			});
+		});
 	});
 });
 
 router.put("/company/user/", (req, res) => {
 	const {
-		_id,
+		userId,
 		update
 	} = req.body;
 
-	if ((!_id && _id !== 0) || !update) {
+	if ((!userId && userId !== 0) || !update) {
 		return res.json({
 			success: false,
 			error: "INVALID INPUTS"
 		});
 	}
-	User.findOneAndUpdate({ _id }, update, error => {
+	User.findByIdAndUpdate(userId, update, error => {
 		if (error) {
 			return res.json({
 				success: true,
@@ -107,7 +103,38 @@ router.put("/company/user/", (req, res) => {
 });
 
 router.delete("/company/user/", (req, res) => {
-	// delete user
+	const {
+		userId,
+		companyId
+	} = req.body;
+
+	User.findById(userId, (error, user) => {
+		if (error) {
+			return res.json({
+				success: true,
+				error
+			});
+		}
+		user.remove((error) => {
+			if (error) {
+				return res.json({
+					success: true,
+					error
+				});
+			}
+			Company.updateOne({ _id: companyId }, { $pull: { users: userId } }, (error) => {
+				if (error) {
+					return res.json({
+						success: true,
+						error
+					});
+				}
+				return res.json({
+					success: true
+				});
+			});
+		});
+	});
 });
 
 // add route with version for possible future versioned routes
