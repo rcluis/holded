@@ -7,9 +7,9 @@ module.exports = () => {
 	return {
 		getUsers: (async (req, res, next) => {
 			try {
-				const { name } = req.params;
-				const result = await Company.findOne({ name }).populate('users').exec();
-				res.json({ data: result });
+				const { id } = req.params;
+				const { users } = await Company.findById(id).populate('users').exec();
+				res.json({ data: users });
 			} catch (error) {
 				next(error);
 			}
