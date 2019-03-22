@@ -14,7 +14,7 @@ class App extends Component {
 		companyId: '5c90f3971c9d4400002b3703',
 		showUserModal: false,
 		newUser: {
-			name: 'afasdf',
+			name: '',
 			surname: '',
 			email: '',
 			position: '',
@@ -50,10 +50,17 @@ class App extends Component {
 
 	addUser = () => {
 		console.log(this.state.newUser);
-		var FR= new FileReader();
+		const FR = new FileReader();
 
-		FR.addEventListener("load", function(e) {
-			console.log(e.target.result);
+		FR.addEventListener("load", (e) => {
+			const base64Image = e.target.result;
+			axios.delete("http://localhost:3001/api/v1/company/user", {
+				data: {
+					companyId: this.state.companyId,
+					profilePicture: base64Image,
+					...this.state.newUser
+				}
+			});
 		});
 
 		FR.readAsDataURL(this.state.newUser.profilePictureFile);
@@ -181,7 +188,7 @@ class App extends Component {
 								<Form.Control
 									type="number"
 									placeholder="Enter salary"
-									value={this.state.newUser.office}
+									value={this.state.newUser.salary}
 									onChange={e => this.setState({ newUser: { ...this.state.newUser, salary: e.target.value} })}
 								/>
 							</Form.Group>
