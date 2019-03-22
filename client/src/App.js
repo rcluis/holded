@@ -2,56 +2,40 @@ import React, {Component} from 'react';
 import axios from "axios";
 import BootstrapTable from 'react-bootstrap-table-next';
 import paginationFactory from 'react-bootstrap-table2-paginator';
+import { FaTrash, FaUserEdit } from "react-icons/fa"
 import 'react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css';
 import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+
 import './App.css';
 
 class App extends Component {
 	state = {
 		users: [],
-		id: 0,
-		message: null,
-		intervalIsSet: false,
-		idToDelete: null,
-		idToUpdate: null,
-		objectToUpdate: null
+		companyId: '5c90f3971c9d4400002b3703'
 	};
 
 	componentDidMount() {
-		this.getDataFromDb();
-		// if (!this.state.intervalIsSet) {
-		//   let interval = setInterval(this.getDataFromDb, 1000);
-		//   this.setState({ intervalIsSet: interval });
-		// }
+		this.getUsers();
 	}
 
-	componentWillUnmount() {
-		// if (this.state.intervalIsSet) {
-		//   clearInterval(this.state.intervalIsSet);
-		//   this.setState({ intervalIsSet: null });
-		// }
-	}
-
-	// just a note, here, in the front end, we use the id key of our data object
-	// in order to identify which we want to Update or delete.
-	// for our back end, we use the object id assigned by MongoDB to modify
-	// data base entries
-
-	// our first get method that uses our backend api to
-	// fetch data from our data base
-	getDataFromDb = () => {
-		fetch('http://localhost:3001/api/v1/company/5c90f3971c9d4400002b3703/users',
-			{
-				headers: {'Content-Type': 'application/json'},
-			})
+	getUsers = () => {
+		fetch(`http://localhost:3001/api/v1/company/${this.state.companyId}/users`)
 			.then(res => res.json())
 			.then(res => {
-				console.log(res.data);
 				this.setState({ users: res.data })
 			}).catch(() => {
 				this.setState({ users: [] });
 		});
-	}
+	};
+
+	deleteUser = userId => {
+		axios.delete("http://localhost:3001/api/v1/company/user", {
+			data: {
+				userId: userId,
+				companyId: this.state.companyId
+			}
+		});
+	};
 
 	render() {
 		const { users } = this.state;
@@ -62,7 +46,7 @@ class App extends Component {
 				text: '',
 				formatter: (cell) => {
 					var base64data = new Buffer(cell.data).toString('base64');
-					return <img src={"data:image/png;base64, " + base64data} width={30}/>;
+					return <img src={"data:image/png;base64, " + base64data} width={30} alt="profile"/>;
 				}
 			},
 			{ dataField: 'name', text: 'Name', sort: true },
@@ -73,19 +57,40 @@ class App extends Component {
 			{ dataField: 'salary', text: 'Salary', sort: true },
 			{ dataField: 'workingHours', text: 'Working hours', sort: true },
 			{
-				dataField: '',
-				text: 'Actions',
+				dataField: 'edit',
+				text: '',
 				formatter: () => (
-					<div>
-						hola
-					</div>
-				)
-
-
-
+					<FaUserEdit />
+				),
+				events: {
+					onClick: (e, column, columnIndex, row, rowIndex) => {
+						console.log(row);
+						this.setState({'users': []});
+					}
+				}
+			},
+			{
+				dataField: 'delete',
+				text: '',
+				formatter: () => (
+					<FaTrash />
+				),
+				events: {
+					onClick: (e, column, columnIndex, row, rowIndex) => {
+						console.log(row._id);
+						const userId = row._id;
+						this.deleteUser(userId, rowIndex);
+					}
+				}
 			}
 		];
-
+		const options = {
+			paginationSize: 1,
+			pageStartIndex: 0,
+			hideSizePerPage: true, // Hide the sizePerPage dropdown always
+			// hidePageListOnlyOnePage: true, // Hide the pagination list when only one page
+			showTotal: true,
+		};
 		return (
 			<div className="container">
 				<BootstrapTable bootstrap4
@@ -94,7 +99,7 @@ class App extends Component {
 								keyField="_id"
 								data={ users }
 								columns={ columns }
-								pagination={ paginationFactory() }
+								pagination={ paginationFactory(options) }
 								classes='table-responsive'
 				/>
 			</div>
