@@ -53,23 +53,37 @@ class App extends Component {
 		});
 	}
 
-	imageFormatter = (cell) => {
-		var base64data = new Buffer(cell.data).toString('base64');
-		return <img src={"data:image/png;base64, " + base64data} width={30}/>;
-	};
-
 	render() {
 		const { users } = this.state;
 
 		const columns = [
-			{ dataField: 'profilePicture', text: '', formatter: this.imageFormatter },
-			{ dataField: 'name', text: 'Name' },
-			{ dataField: 'surname', text: 'Surname' },
-			{ dataField: 'email', text: 'Email' },
-			{ dataField: 'position', text: 'Position' },
-			{ dataField: 'office', text: 'Office' },
-			{ dataField: 'salary', text: 'Salary' },
-			{ dataField: 'workingHours', text: 'Working hours' }
+			{
+				dataField: 'profilePicture',
+				text: '',
+				formatter: (cell) => {
+					var base64data = new Buffer(cell.data).toString('base64');
+					return <img src={"data:image/png;base64, " + base64data} width={30}/>;
+				}
+			},
+			{ dataField: 'name', text: 'Name', sort: true },
+			{ dataField: 'surname', text: 'Surname', sort: true },
+			{ dataField: 'email', text: 'Email', sort: true },
+			{ dataField: 'position', text: 'Position', sort: true },
+			{ dataField: 'office', text: 'Office', sort: true },
+			{ dataField: 'salary', text: 'Salary', sort: true },
+			{ dataField: 'workingHours', text: 'Working hours', sort: true },
+			{
+				dataField: '',
+				text: 'Actions',
+				formatter: () => (
+					<div>
+						hola
+					</div>
+				)
+
+
+
+			}
 		];
 
 		return (
