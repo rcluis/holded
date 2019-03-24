@@ -17,7 +17,6 @@ module.exports = () => {
 		addUser: (async (req, res, next) => {
 			try {
 				const { companyId, profilePicture, ...userAttributes } = req.body;
-
 				if ((!companyId && companyId !== 0)) {
 					return res.json(Utils.handleError('Invalid parameters'));
 				}
@@ -41,6 +40,9 @@ module.exports = () => {
 				if ((!userId && userId !== 0) || !update) {
 					return res.json(Utils.handleError('Invalid parameters'));
 				}
+				if (update.profilePicture) {
+				    update.profilePicture = Buffer.from(profilePicture, 'base64');
+                }
 				const user = await User.findByIdAndUpdate(userId, update);
 				res.json(Utils.handleSuccess('User edited successfully', user));
 			} catch (error) {
