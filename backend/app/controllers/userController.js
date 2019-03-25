@@ -24,7 +24,7 @@ module.exports = () => {
 				const newUser = new User({
 					_id: new mongoose.Types.ObjectId(),
 					profilePicture: Buffer.from(profilePicture, 'base64'),
-					...userAttributes
+					...userAttributes,
 				});
 
 				const user = await newUser.save();
@@ -41,9 +41,9 @@ module.exports = () => {
 					return res.json(Utils.handleError('Invalid parameters'));
 				}
 				if (update.profilePicture) {
-				    update.profilePicture = Buffer.from(profilePicture, 'base64');
+				    update.profilePicture = Buffer.from(update.profilePicture, 'base64');
                 }
-				const user = await User.findByIdAndUpdate(userId, update);
+				const user = await User.findByIdAndUpdate(userId, update, {new: true});
 				res.json(Utils.handleSuccess('User edited successfully', user));
 			} catch (error) {
 				next(error);

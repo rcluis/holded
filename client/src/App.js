@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import axios from "axios";
+import client from './client';
 import BootstrapTable from 'react-bootstrap-table-next';
 import paginationFactory from 'react-bootstrap-table2-paginator';
-import { Button, Modal, Form, Col } from 'react-bootstrap';
-import { FaTrash, FaUserEdit } from "react-icons/fa"
+import { Button, Modal, Form, Col, Row } from 'react-bootstrap';
+import { FaTrash, FaUserEdit } from "react-icons/fa";
+import Input from './components/Input';
 import 'react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css';
 import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
 import './App.scss';
@@ -31,18 +32,19 @@ class App extends Component {
 	}
 
 	getUsers = () => {
-		fetch(`http://localhost:3001/api/v1/company/${this.state.companyId}/users`)
-			.then(res => res.json())
+		client
+			.get(`company/${this.state.companyId}/users`)
 			.then(res => {
-				this.setState({users: res.data})
-			}).catch(() => {
+				this.setState({users: res.data.data});
+			})
+			.catch(() => {
 				this.setState({users: []});
 		});
 	};
 
 	deleteUser = (userId, index) => {
-		axios
-			.delete("http://localhost:3001/api/v1/company/user", {
+		client
+			.delete('company/user', {
 				data: {
 					userId: userId,
 					companyId: this.state.companyId
@@ -55,14 +57,44 @@ class App extends Component {
 			});
 	};
 
+	editUser = async () => {
+		this.setState({isEditing: false});
+		const { _id: userId, ...update } = this.state.userInfo;
+
+		if (this.state.profilePictureFile) {
+			update.profilePicture = await this.imageToBase64(this.state.profilePictureFile);
+		}
+		const editedUser = await client.put('company/user', {companyId: this.state.companyId, userId, update});
+		console.log(editedUser)
+		const userIndex = this.state.users.findIndex(({_id}) => _id === userId);
+		this.setState(({ users }) => ({
+			users: [
+				...users,
+				editedUser.data.data
+			]
+		}));
+
+		// this.setState({
+		// 	users: {
+		// 		...this.state.users,
+		// 		this.state.users[userIndex]: editedUser.data.data
+		// 	}
+		// }
+	// );
+		console.log(this.state.users);
+
+		// this.setState({users: [...this.state.users, [this.state.users[userIndex]: editedUser]]});
+		this.closeUserModal();
+	};
+
 	addUser = () => {
 		console.log(this.state.userInfo);
 		const FR = new FileReader();
 
 		FR.addEventListener("load", (e) => {
 			const base64Image = e.target.result.split(',')[1];
-			axios
-				.post("http://localhost:3001/api/v1/company/user", {
+			client
+				.post('company/user', {
 					companyId: this.state.companyId,
 					profilePicture: base64Image,
 					...this.state.userInfo
@@ -70,24 +102,38 @@ class App extends Component {
 				.then((result) => {
 					const { data } = result.data;
 					this.setState({users: [...this.state.users, data]});
-					this.toggleUserModal();
-					this.setState({userInfo: {}});
+					this.closeUserModal();
 				});
 		});
 
 		FR.readAsDataURL(this.state.profilePictureFile);
 	};
 
-	editUser = () => {
-		this.setState({isEditing: false})
-	}
+	imageToBase64 = file => {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => {
+				resolve(reader.result.split(',')[1]);
+			};
+			reader.onerror = reject;
+			reader.readAsDataURL(file);
+		});
+	};
 
 	toggleUserModal = () => {
 		this.setState({showUserModal: !this.state.showUserModal});
 	};
 
-	onSubmitUserForm = () => {
-		return this.state.isEditing ? this.editUser() : this.addUser();
+	closeUserModal = () => {
+		this.toggleUserModal();
+		this.setState({userInfo: {}});
+	};
+
+	handleChange = (event) => {
+		const { target } = event;
+		const value = target.value;
+		const { name } = target;
+		this.setState({userInfo: {...this.state.userInfo, [name]: value}});
 	};
 
 	render() {
@@ -116,9 +162,10 @@ class App extends Component {
 					<FaUserEdit />
 				),
 				events: {
-					onClick: (e, column, columnIndex, row, rowIndex) => {
-						this.setState({isEditing: true});
-						console.log(row);
+					onClick: (e, column, columnIndex, row) => {
+						const { profilePicture, ...userInfo } = row;
+						this.setState({userInfo, isEditing: true});
+						this.toggleUserModal();
 					}
 				}
 			},
@@ -137,7 +184,7 @@ class App extends Component {
 			}
 		];
 		const options = {
-			paginationSize: 1,
+			paginationSize: 5,
 			pageStartIndex: 0,
 			hideSizePerPage: true, // Hide the sizePerPage dropdown always
 			// hidePageListOnlyOnePage: true, // Hide the pagination list when only one page
@@ -147,79 +194,28 @@ class App extends Component {
 		return (
 			<div className="container">
 				<Button variant="primary" onClick={this.toggleUserModal}>Add user</Button>
-				<Modal show={this.state.showUserModal} onHide={this.toggleUserModal}>
+				<Modal show={this.state.showUserModal} onHide={this.closeUserModal}>
 					<Modal.Header closeButton>
 						<Modal.Title>User info</Modal.Title>
 					</Modal.Header>
 					<Modal.Body>
-						<Form onSubmit={this.onSubmitUserForm}>
+						<Form onSubmit={(e) => {
+							e.preventDefault();
+							this.state.isEditing ? this.editUser() : this.addUser();
+						}}>
 							<Form.Row>
-								<Form.Group	as={Col} controlId="name">
-									<Form.Label>Name</Form.Label>
-									<Form.Control
-										required
-										type="text"
-										placeholder="Enter name"
-										value={this.state.userInfo.name}
-										onChange={e => this.setState({userInfo: {...this.state.userInfo, name: e.target.value}})}
-									/>
-									<Form.Control.Feedback type="invalid">
-										Please enter a name
-									</Form.Control.Feedback>
-								</Form.Group>
-								<Form.Group as={Col} controlId="surname">
-									<Form.Label>Surname</Form.Label>
-									<Form.Control
-										required
-										type="text"
-										placeholder="Enter surname"
-										value={this.state.userInfo.surname}
-										onChange={e => this.setState({userInfo: {...this.state.userInfo, surname: e.target.value}})}
-									/>
-									<Form.Control.Feedback type="invalid">
-										Please enter a username
-									</Form.Control.Feedback>
-								</Form.Group>
+								<Row>
+									<Col>
+										<Input title="name" value={this.state.userInfo.name} onChange={this.handleChange} />
+									</Col>
+									<Col>
+										<Input title="surname" value={this.state.userInfo.surname} onChange={this.handleChange} />
+									</Col>
+								</Row>
 							</Form.Row>
-							<Form.Group controlId="email">
-								<Form.Label>Email</Form.Label>
-								<Form.Control
-									required
-									type="email"
-									placeholder="Enter email"
-									value={this.state.userInfo.email}
-									onChange={e => this.setState({userInfo: {...this.state.userInfo, email: e.target.value}})}
-								/>
-								<Form.Control.Feedback type="invalid">
-									Please enter an email
-								</Form.Control.Feedback>
-							</Form.Group>
-							<Form.Group controlId="position">
-								<Form.Label>Position</Form.Label>
-								<Form.Control
-									required
-									type="text"
-									placeholder="Enter position"
-									value={this.state.userInfo.position}
-									onChange={e => this.setState({userInfo: {...this.state.userInfo, position: e.target.value}})}
-								/>
-								<Form.Control.Feedback type="invalid">
-									Please enter a position
-								</Form.Control.Feedback>
-							</Form.Group>
-							<Form.Group controlId="office">
-								<Form.Label>Office</Form.Label>
-								<Form.Control
-									required
-									type="text"
-									placeholder="Enter office"
-									value={this.state.userInfo.office}
-									onChange={e => this.setState({userInfo: { ...this.state.userInfo, office: e.target.value}})}
-								/>
-								<Form.Control.Feedback type="invalid">
-									Please enter an office
-								</Form.Control.Feedback>
-							</Form.Group>
+							<Input title="email" type="email" value={this.state.userInfo.email} onChange={this.handleChange} />
+							<Input title="position" value={this.state.userInfo.position} onChange={this.handleChange} />
+							<Input title="office" value={this.state.userInfo.office} onChange={this.handleChange} />
 							<Form.Row>
 								<Form.Group as={Col} controlId="salary">
 									<Form.Label>Salary</Form.Label>
@@ -251,7 +247,7 @@ class App extends Component {
 							<Form.Group controlId="profileImage">
 								<Form.Label>Profile image</Form.Label>
 								<Form.Control
-									required={this.state.isEditing}
+									required={!this.state.isEditing}
 									type="file"
 									onChange={e => this.setState({profilePictureFile: e.target.files[0]})}
 									accept=".png, .jpg"/>
@@ -266,14 +262,15 @@ class App extends Component {
 					</Modal.Body>
 				</Modal>
 
-				<BootstrapTable bootstrap4
-								bordered={false}
-								hover={true}
-								keyField="_id"
-								data={users}
-								columns={columns}
-								pagination={paginationFactory(options)}
-								classes='table-responsive'
+				<BootstrapTable
+					bootstrap4
+					bordered={false}
+					hover={true}
+					keyField="_id"
+					data={users}
+					columns={columns}
+					pagination={paginationFactory(options)}
+					classes='table-responsive'
 				/>
 			</div>
 		);
