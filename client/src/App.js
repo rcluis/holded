@@ -2,12 +2,11 @@ import React, { Component } from 'react';
 import client from './client';
 import BootstrapTable from 'react-bootstrap-table-next';
 import paginationFactory from 'react-bootstrap-table2-paginator';
-import { Button, Modal, Form, Col, Row } from 'react-bootstrap';
+import { Button, Modal, Form, Col, Row, Alert } from 'react-bootstrap';
 import { FaTrash, FaUserEdit } from "react-icons/fa";
 import Input from './components/Input';
 import 'react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css';
 import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
-import './App.scss';
 
 const initialUserInfo = {
 	name: '',
@@ -28,7 +27,9 @@ class App extends Component {
 		isEditing: false,
 		userInfo: {
 			...initialUserInfo
-		}
+		},
+		alertMessage: '',
+		showAlert: false,
 	};
 
 	componentDidMount() {
@@ -46,19 +47,13 @@ class App extends Component {
 		});
 	};
 
-	deleteUser = (userId, index) => {
-		client
-			.delete('company/user', {
-				data: {
-					userId: userId,
-					companyId: this.state.companyId
-				}
-			})
-			.then(() => {
-				const users = [...this.state.users];
-				users.splice(index, 1);
-				this.setState({users});
-			});
+	deleteUser = async (userId, index) => {
+		const result = await client.delete('company/user', {data: {userId: userId,companyId: this.state.companyId}});
+		const { message } = result.data;
+		const users = [...this.state.users];
+		users.splice(index, 1);
+		this.setState({users});
+		this.showAlert(message);
 	};
 
 	editUser = async () => {
@@ -68,40 +63,28 @@ class App extends Component {
 		if (this.state.profilePictureFile) {
 			update.profilePicture = await this.imageToBase64(this.state.profilePictureFile);
 		}
-		const editedUser = await client.put('company/user', {companyId: this.state.companyId, userId, update});
-		console.log(editedUser)
+		const result = await client.put('company/user', {companyId: this.state.companyId, userId, update});
+		const { data, message } = result.data;
 		const userIndex = this.state.users.findIndex(({_id}) => _id === userId);
 
 		this.setState(({ users: prevUsers }) => {
 			const users = [...prevUsers];
-			users[userIndex] = editedUser.data.data;
+			users[userIndex] = data;
 			return {
 				users
 			}
 		});
 		this.closeUserModal();
+		this.showAlert(message);
 	};
 
-	addUser = () => {
-		console.log(this.state.userInfo);
-		const FR = new FileReader();
-
-		FR.addEventListener("load", (e) => {
-			const base64Image = e.target.result.split(',')[1];
-			client
-				.post('company/user', {
-					companyId: this.state.companyId,
-					profilePicture: base64Image,
-					...this.state.userInfo
-				})
-				.then((result) => {
-					const { data } = result.data;
-					this.setState({users: [...this.state.users, data]});
-					this.closeUserModal();
-				});
-		});
-
-		FR.readAsDataURL(this.state.profilePictureFile);
+	addUser = async () => {
+		const profilePicture = await this.imageToBase64(this.state.profilePictureFile);
+		const result = await client.post('company/user', {companyId: this.state.companyId,profilePicture, ...this.state.userInfo});
+		const { data, message } = result.data;
+		this.setState({users: [...this.state.users, data]});
+		this.closeUserModal();
+		this.showAlert(message);
 	};
 
 	imageToBase64 = file => {
@@ -113,6 +96,10 @@ class App extends Component {
 			reader.onerror = reject;
 			reader.readAsDataURL(file);
 		});
+	};
+
+	showAlert = message => {
+		this.setState({showAlert: true, alertMessage: message});
 	};
 
 	toggleUserModal = () => {
@@ -179,16 +166,16 @@ class App extends Component {
 			}
 		];
 		const options = {
-			paginationSize: 5,
-			pageStartIndex: 0,
-			hideSizePerPage: true, // Hide the sizePerPage dropdown always
-			// hidePageListOnlyOnePage: true, // Hide the pagination list when only one page
+			hideSizePerPage: true,
 			showTotal: true,
 		};
 
 		return (
-			<div className="container">
-				<Button variant="primary" onClick={this.toggleUserModal}>Add user</Button>
+			<div className="container pt-3">
+				<Alert dismissible variant="success" show={this.state.showAlert} onClose={() => this.setState({showAlert: false})}>
+					{this.state.alertMessage}
+				</Alert>
+				<Button className="mb-3" variant="primary" onClick={this.toggleUserModal}>Add user</Button>
 				<Modal show={this.state.showUserModal} onHide={this.closeUserModal}>
 					<Modal.Header closeButton>
 						<Modal.Title>User info</Modal.Title>
@@ -211,34 +198,14 @@ class App extends Component {
 							<Input title="email" type="email" value={this.state.userInfo.email} onChange={this.handleChange} />
 							<Input title="position" value={this.state.userInfo.position} onChange={this.handleChange} />
 							<Input title="office" value={this.state.userInfo.office} onChange={this.handleChange} />
-							<Form.Row>
-								<Form.Group as={Col} controlId="salary">
-									<Form.Label>Salary</Form.Label>
-									<Form.Control
-										required
-										type="number"
-										placeholder="Enter salary"
-										value={this.state.userInfo.salary}
-										onChange={e => this.setState({userInfo: { ...this.state.userInfo, salary: e.target.value}})}
-									/>
-									<Form.Control.Feedback type="invalid">
-										Please enter a salary
-									</Form.Control.Feedback>
-								</Form.Group>
-								<Form.Group as={Col} controlId="workingHours">
-									<Form.Label>Working hours</Form.Label>
-									<Form.Control
-										required
-										type="number"
-										placeholder="Enter working hours"
-										value={this.state.userInfo.workingHours}
-										onChange={e => this.setState({userInfo: {...this.state.userInfo, workingHours: e.target.value}})}
-									/>
-									<Form.Control.Feedback type="invalid">
-										Please enter working hours
-									</Form.Control.Feedback>
-								</Form.Group>
-							</Form.Row>
+							<Row>
+								<Col>
+									<Input title="salary" value={this.state.userInfo.salary} onChange={this.handleChange} />
+								</Col>
+								<Col>
+									<Input title="workingHours" value={this.state.userInfo.workingHours} onChange={this.handleChange} />
+								</Col>
+							</Row>
 							<Form.Group controlId="profileImage">
 								<Form.Label>Profile image</Form.Label>
 								<Form.Control
@@ -250,9 +217,7 @@ class App extends Component {
 									Please select and image
 								</Form.Control.Feedback>
 							</Form.Group>
-							<Button variant="primary" type="submit">
-								Save
-							</Button>
+							<Button variant="primary" type="submit">Save</Button>
 						</Form>
 					</Modal.Body>
 				</Modal>
