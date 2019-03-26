@@ -4,3 +4,5 @@
 - add i18n
 - split in components
 - add profile image limit size
+- add validations to the forms, limits etc
+- clean readme from client and server

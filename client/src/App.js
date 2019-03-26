@@ -9,6 +9,16 @@ import 'react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.m
 import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
 import './App.scss';
 
+const initialUserInfo = {
+	name: '',
+	surname: '',
+	email: '',
+	position: '',
+	office: '',
+	salary: 0,
+	workingHours: 0
+};
+
 class App extends Component {
 	state = {
 		users: [],
@@ -17,13 +27,7 @@ class App extends Component {
 		profilePictureFile: null,
 		isEditing: false,
 		userInfo: {
-			name: '',
-			surname: '',
-			email: '',
-			position: '',
-			office: '',
-			salary: 0,
-			workingHours: 0
+			...initialUserInfo
 		}
 	};
 
@@ -67,23 +71,14 @@ class App extends Component {
 		const editedUser = await client.put('company/user', {companyId: this.state.companyId, userId, update});
 		console.log(editedUser)
 		const userIndex = this.state.users.findIndex(({_id}) => _id === userId);
-		this.setState(({ users }) => ({
-			users: [
-				...users,
-				editedUser.data.data
-			]
-		}));
 
-		// this.setState({
-		// 	users: {
-		// 		...this.state.users,
-		// 		this.state.users[userIndex]: editedUser.data.data
-		// 	}
-		// }
-	// );
-		console.log(this.state.users);
-
-		// this.setState({users: [...this.state.users, [this.state.users[userIndex]: editedUser]]});
+		this.setState(({ users: prevUsers }) => {
+			const users = [...prevUsers];
+			users[userIndex] = editedUser.data.data;
+			return {
+				users
+			}
+		});
 		this.closeUserModal();
 	};
 
@@ -126,7 +121,7 @@ class App extends Component {
 
 	closeUserModal = () => {
 		this.toggleUserModal();
-		this.setState({userInfo: {}});
+		this.setState({userInfo: {...initialUserInfo}});
 	};
 
 	handleChange = (event) => {
